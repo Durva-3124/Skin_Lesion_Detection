@@ -1,0 +1,25 @@
+# Dataset images — never commit raw image data
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model weights (large binaries — store separately)
+*.pth
+*.pt
+*.h5
+*.onnx
+*.trt
+*.engine
