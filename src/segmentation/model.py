@@ -54,26 +54,28 @@ class UNetVGG16(nn.Module):
 
         self.bottleneck = ConvBlock(512, 1024)
 
-        self.up4 = UpBlock(1024, 512, 512)
-        self.up3 = UpBlock(512, 256, 256)
-        self.up2 = UpBlock(256, 128, 128)
-        self.up1 = UpBlock(128, 64, 64)
+        self.up5 = UpBlock(1024, 512, 512)
+        self.up4 = UpBlock(512, 512, 256)
+        self.up3 = UpBlock(256, 256, 128)
+        self.up2 = UpBlock(128, 128, 64)
+        self.up1 = UpBlock(64, 64, 32)
 
-        self.out = nn.Conv2d(64, num_classes, kernel_size=1)
+        self.out = nn.Conv2d(32, num_classes, kernel_size=1)
 
     def forward(self, x):
-        e1 = self.enc1(x)
-        e2 = self.enc2(self.pool(e1))
-        e3 = self.enc3(self.pool(e2))
-        e4 = self.enc4(self.pool(e3))
-        e5 = self.enc5(self.pool(e4))
+        e1 = self.enc1(x)           # 64 ch
+        e2 = self.enc2(self.pool(e1))  # 128 ch
+        e3 = self.enc3(self.pool(e2))  # 256 ch
+        e4 = self.enc4(self.pool(e3))  # 512 ch
+        e5 = self.enc5(self.pool(e4))  # 512 ch
 
-        b = self.bottleneck(self.pool(e5))
+        b = self.bottleneck(e5)     # no extra pool — keeps spatial dims
 
-        d4 = self.up4(b, e5)
-        d3 = self.up3(d4, e4)
-        d2 = self.up2(d3, e3)
-        d1 = self.up1(d2, e2)
+        d5 = self.up5(b, e5)
+        d4 = self.up4(d5, e4)
+        d3 = self.up3(d4, e3)
+        d2 = self.up2(d3, e2)
+        d1 = self.up1(d2, e1)
 
         return self.out(d1)
 
