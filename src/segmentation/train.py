@@ -75,8 +75,8 @@ def get_seg_dataloaders(image_size=256, batch_size=8, val_fraction=0.15, seed=42
     val_ds = SegmentationDataset([p[0] for p in val_pairs], [p[1] for p in val_pairs], image_size)
 
     return (
-        DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True),
-        DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True),
+        DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True),
+        DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True),
     )
 
 
