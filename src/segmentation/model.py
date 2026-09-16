@@ -32,6 +32,9 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip):
         x = self.up(x)
+        # Pad x to match skip spatial dims if they differ by 1 pixel
+        if x.shape[2:] != skip.shape[2:]:
+            x = torch.nn.functional.interpolate(x, size=skip.shape[2:], mode='bilinear', align_corners=False)
         x = torch.cat([x, skip], dim=1)
         return self.conv(x)
 
