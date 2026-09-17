@@ -96,7 +96,7 @@ class ISIC2019Dataset(Dataset):
         return torch.tensor(weights / weights.sum(), dtype=torch.float32)
 
 
-def get_dataloaders(dataset_name="ham10000", batch_size=32, image_size=224, num_workers=2):
+def get_dataloaders(dataset_name="ham10000", batch_size=32, image_size=224, num_workers=0):
     from src.preprocessing.transforms import get_train_transforms, get_val_transforms
 
     DatasetClass = HAM10000Dataset if dataset_name == "ham10000" else ISIC2019Dataset
