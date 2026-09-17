@@ -91,7 +91,8 @@ def train(encoder="vgg16", epochs=30, lr=1e-4, image_size=256, batch_size=8, sav
     train_loader, val_loader = get_seg_dataloaders(image_size=image_size, batch_size=batch_size)
 
     best_dice = 0.0
-    save_path = save_path or pathlib.Path(f"unet_{encoder}.pth")
+    save_path = pathlib.Path(save_path or f"unet_{encoder}.pth")
+    save_path.parent.mkdir(parents=True, exist_ok=True)
 
     for epoch in range(1, epochs + 1):
         model.train()
