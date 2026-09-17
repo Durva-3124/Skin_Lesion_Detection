@@ -15,6 +15,9 @@ from torchvision import transforms
 from src.segmentation.model import get_segmentation_model
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
+_colab = pathlib.Path('/content/data')
+if _colab.exists():
+    DATA_DIR = _colab
 SEG_DIR = DATA_DIR / "isic2018_seg"
 IMG_DIR = SEG_DIR / "ISIC2018_Task1-2_Training_Input"
 MASK_DIR = SEG_DIR / "ISIC2018_Task1_Training_GroundTruth"

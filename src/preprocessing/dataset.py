@@ -13,6 +13,11 @@ import torch
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
 
+def _resolve_data_dir():
+    """Returns /content/data on Colab, otherwise the repo-relative data/ dir."""
+    colab = pathlib.Path('/content/data')
+    return colab if colab.exists() else DATA_DIR
+
 # HAM10000 label map
 HAM_CLASSES = ["akiec", "bcc", "bkl", "df", "mel", "nv", "vasc"]
 HAM_CLASS_TO_IDX = {c: i for i, c in enumerate(HAM_CLASSES)}
@@ -24,7 +29,8 @@ ISIC19_CLASS_TO_IDX = {c: i for i, c in enumerate(ISIC19_CLASSES)}
 
 class HAM10000Dataset(Dataset):
     def __init__(self, split="train", transform=None, val_fraction=0.15, seed=42):
-        meta = pd.read_csv(DATA_DIR / "ham10000" / "HAM10000_metadata.tab", sep="\t")
+        data_dir = _resolve_data_dir()
+        meta = pd.read_csv(data_dir / "ham10000" / "HAM10000_metadata.tab", sep="\t")
         meta = meta[meta["dx"].isin(HAM_CLASSES)].reset_index(drop=True)
 
         rng = np.random.default_rng(seed)
@@ -35,7 +41,7 @@ class HAM10000Dataset(Dataset):
 
         self.meta = meta.iloc[train_idx if split == "train" else val_idx].reset_index(drop=True)
         self.transform = transform
-        self.image_dir = DATA_DIR / "ham10000"
+        self.image_dir = data_dir / "ham10000"
         self.labels = [HAM_CLASS_TO_IDX[dx] for dx in self.meta["dx"]]
 
     def __len__(self):
@@ -61,7 +67,8 @@ class HAM10000Dataset(Dataset):
 
 class ISIC2019Dataset(Dataset):
     def __init__(self, split="train", transform=None, val_fraction=0.15, seed=42):
-        gt = pd.read_csv(DATA_DIR / "isic2019" / "ISIC_2019_Training_GroundTruth.csv")
+        data_dir = _resolve_data_dir()
+        gt = pd.read_csv(data_dir / "isic2019" / "ISIC_2019_Training_GroundTruth.csv")
         gt = gt[gt["UNK"] == 0].reset_index(drop=True)  # drop unknown-label rows
 
         # Convert one-hot to class index
@@ -76,7 +83,7 @@ class ISIC2019Dataset(Dataset):
 
         self.meta = gt.iloc[train_idx if split == "train" else val_idx].reset_index(drop=True)
         self.transform = transform
-        self.image_dir = DATA_DIR / "isic2019" / "ISIC_2019_Training_Input"
+        self.image_dir = data_dir / "isic2019" / "ISIC_2019_Training_Input"
         self.labels = self.meta["label"].tolist()
 
     def __len__(self):
