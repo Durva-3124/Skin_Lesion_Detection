@@ -14,12 +14,18 @@ from torchvision import transforms
 
 from src.segmentation.model import get_segmentation_model
 
-DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "data"
-_colab = pathlib.Path('/content/data')
-if _colab.exists():
-    DATA_DIR = _colab
-SEG_DIR = DATA_DIR / "isic2018_seg"
-IMG_DIR = SEG_DIR / "ISIC2018_Task1-2_Training_Input"
+_KAGGLE_SEG = pathlib.Path("/kaggle/input/datasets/tschandl/isic2018-challenge-task1-data-segmentation")
+_COLAB_SEG  = pathlib.Path("/content/data/isic2018_seg")
+_REPO_SEG   = pathlib.Path(__file__).parent.parent.parent / "data" / "isic2018_seg"
+
+if _KAGGLE_SEG.exists():
+    SEG_DIR  = _KAGGLE_SEG
+elif _COLAB_SEG.exists():
+    SEG_DIR  = _COLAB_SEG
+else:
+    SEG_DIR  = _REPO_SEG
+
+IMG_DIR  = SEG_DIR / "ISIC2018_Task1-2_Training_Input"
 MASK_DIR = SEG_DIR / "ISIC2018_Task1_Training_GroundTruth"
 
 
