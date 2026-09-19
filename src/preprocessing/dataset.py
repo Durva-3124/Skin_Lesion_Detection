@@ -96,7 +96,7 @@ class ISIC2019Dataset(Dataset):
     def __init__(self, split="train", transform=None, val_fraction=0.15, seed=42):
         if _on_kaggle():
             gt = pd.read_csv(_KAGGLE_I19 / "ISIC_2019_Training_GroundTruth.csv")
-            self.image_dir = _KAGGLE_I19 / "ISIC_2019_Training_Input"
+            self.image_dir = _KAGGLE_I19 / "ISIC_2019_Training_Input" / "ISIC_2019_Training_Input"
         elif _on_colab():
             gt = pd.read_csv(_COLAB_DATA / "isic2019" / "ISIC_2019_Training_GroundTruth.csv")
             self.image_dir = _COLAB_DATA / "isic2019" / "ISIC_2019_Training_Input"
