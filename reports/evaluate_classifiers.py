@@ -1,16 +1,16 @@
 """
 reports/evaluate_classifiers.py
 Per-class evaluation of trained classifiers on HAM10000 val split.
-Reports recall on malignant classes (mel, bcc, akiec) explicitly.
+Saves full results to reports/eval_ham10000_<timestamp>.json
 Run from repo root: python reports/evaluate_classifiers.py
 """
 
-import sys, pathlib
+import sys, pathlib, json, datetime
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import torch
 import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from torch.utils.data import DataLoader
 
 from src.classification.model import get_classification_model
@@ -30,7 +30,7 @@ def evaluate(model_name: str, weights_path: pathlib.Path, device: torch.device) 
     model.to(device).eval()
 
     val_ds = HAM10000Dataset(split="val", transform=get_val_transforms(224))
-    loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=0, pin_memory=True)
+    loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=0, pin_memory=False)
 
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -40,72 +40,102 @@ def evaluate(model_name: str, weights_path: pathlib.Path, device: torch.device) 
             all_labels.extend(labels.numpy())
 
     cm = confusion_matrix(all_labels, all_preds, labels=list(range(7)))
-    report = classification_report(
+    acc = accuracy_score(all_labels, all_preds)
+    report_str = classification_report(
         all_labels, all_preds,
         target_names=HAM_CLASSES,
         digits=4, zero_division=0
     )
 
-    # Per-class recall (sensitivity)
-    per_class_recall = {}
+    per_class = {}
     for i, cls in enumerate(HAM_CLASSES):
-        tp = cm[i, i]
-        fn = cm[i, :].sum() - tp
-        per_class_recall[cls] = tp / (tp + fn + 1e-8)
+        tp = int(cm[i, i])
+        fn = int(cm[i, :].sum() - tp)
+        fp = int(cm[:, i].sum() - tp)
+        tn = int(cm.sum() - tp - fn - fp)
+        support = int(cm[i, :].sum())
+        per_class[cls] = {
+            "precision": round(tp / (tp + fp + 1e-8), 4),
+            "recall":    round(tp / (tp + fn + 1e-8), 4),
+            "f1":        round(2*tp / (2*tp + fp + fn + 1e-8), 4),
+            "support":   support,
+            "malignant": cls in MALIGNANT,
+        }
 
-    return {"report": report, "recall": per_class_recall, "cm": cm}
+    mal_recalls = [per_class[c]["recall"] for c in MALIGNANT]
+
+    return {
+        "model_name":        model_name,
+        "weights_file":      str(weights_path.resolve()),
+        "weights_size_mb":   round(weights_path.stat().st_size / 1e6, 2),
+        "val_split":         "HAM10000Dataset(split='val', val_fraction=0.15, seed=42)",
+        "val_samples":       len(all_labels),
+        "preprocessing":     "get_val_transforms(224): Resize(224x224) + ToTensor + ImageNet Normalize",
+        "overall_accuracy":  round(acc, 4),
+        "per_class":         per_class,
+        "malignant_recall":  {c: per_class[c]["recall"] for c in MALIGNANT},
+        "mean_malignant_recall": round(float(np.mean(mal_recalls)), 4),
+        "classification_report": report_str,
+    }
 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Device: {device}\n")
-    print(f"HAM_CLASSES order: {HAM_CLASSES}")
-    print(f"Malignant classes: {MALIGNANT}\n")
-    print("=" * 70)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = pathlib.Path("reports") / f"eval_ham10000_{timestamp}.json"
 
-    results = {}
+    results = {
+        "timestamp":    timestamp,
+        "device":       str(device),
+        "ham_classes":  HAM_CLASSES,
+        "script":       "reports/evaluate_classifiers.py",
+        "models":       {}
+    }
+
     for model_name, weights_path in MODELS.items():
         if not weights_path.exists():
-            print(f"SKIP {model_name} — {weights_path} not found\n")
+            print(f"SKIP {model_name} — {weights_path} not found")
+            results["models"][model_name] = {"error": f"{weights_path} not found"}
             continue
 
-        print(f"\n{'=' * 70}")
-        print(f"Model: {model_name}  |  Weights: {weights_path}")
-        print("=" * 70)
-
+        print(f"\nEvaluating {model_name} from {weights_path} ...")
         r = evaluate(model_name, weights_path, device)
-        results[model_name] = r
+        results["models"][model_name] = r
 
-        print(r["report"])
+        print(r["classification_report"])
+        print(f"Overall accuracy : {r['overall_accuracy']:.4f}")
+        print(f"Malignant recall : mel={r['malignant_recall']['mel']:.4f}  "
+              f"bcc={r['malignant_recall']['bcc']:.4f}  "
+              f"akiec={r['malignant_recall']['akiec']:.4f}  "
+              f"mean={r['mean_malignant_recall']:.4f}")
 
-        print("Per-class recall:")
-        for cls, recall in r["recall"].items():
-            tag = "[MALIGNANT]" if cls in MALIGNANT else ""
-            print(f"  {cls:6s}: {recall:.4f}  {tag}")
+    out_path.parent.mkdir(exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(results, f, indent=2)
 
-        print("\nMalignant class recall summary:")
-        mal_recalls = [r["recall"][c] for c in MALIGNANT]
-        print(f"  mel   : {r['recall']['mel']:.4f}")
-        print(f"  bcc   : {r['recall']['bcc']:.4f}")
-        print(f"  akiec : {r['recall']['akiec']:.4f}")
-        print(f"  mean  : {np.mean(mal_recalls):.4f}")
+    print(f"\nSaved to {out_path}")
 
-    # Side-by-side malignant recall comparison
-    if len(results) == 2:
-        print("\n" + "=" * 70)
-        print("MALIGNANT RECALL COMPARISON")
-        print("=" * 70)
-        print(f"{'Class':<10} {'EfficientNet-B0':>16} {'Swin-Small':>12}")
-        for cls in MALIGNANT:
-            b0  = results["efficientnet_b0"]["recall"][cls]
-            swn = results["swin_small"]["recall"][cls]
-            print(f"{cls:<10} {b0:>16.4f} {swn:>12.4f}")
-        b0_mean  = np.mean([results["efficientnet_b0"]["recall"][c] for c in MALIGNANT])
-        swn_mean = np.mean([results["swin_small"]["recall"][c] for c in MALIGNANT])
-        print(f"{'mean':<10} {b0_mean:>16.4f} {swn_mean:>12.4f}")
-        print("\nLiterature target (Module 2): sensitivity 89–97% on malignant classes")
-        print(f"EfficientNet-B0 mean malignant recall: {b0_mean:.1%}")
-        print(f"Swin-Small      mean malignant recall: {swn_mean:.1%}")
+    # Side-by-side comparison
+    if all(m in results["models"] and "error" not in results["models"][m]
+           for m in ["efficientnet_b0", "swin_small"]):
+        b0  = results["models"]["efficientnet_b0"]
+        swn = results["models"]["swin_small"]
+        print("\n" + "="*65)
+        print("SIDE-BY-SIDE COMPARISON")
+        print("="*65)
+        print(f"{'Metric':<25} {'EfficientNet-B0':>16} {'Swin-Small':>12}")
+        print("-"*65)
+        print(f"{'overall_accuracy':<25} {b0['overall_accuracy']:>16.4f} {swn['overall_accuracy']:>12.4f}")
+        for cls in HAM_CLASSES:
+            tag = " [MAL]" if cls in MALIGNANT else ""
+            print(f"{'recall_'+cls+tag:<25} {b0['per_class'][cls]['recall']:>16.4f} "
+                  f"{swn['per_class'][cls]['recall']:>12.4f}")
+        print(f"{'mean_malignant_recall':<25} {b0['mean_malignant_recall']:>16.4f} "
+              f"{swn['mean_malignant_recall']:>12.4f}")
+        print("="*65)
+        print(f"\nCheckpoints used:")
+        print(f"  EfficientNet-B0 : {b0['weights_file']}")
+        print(f"  Swin-Small      : {swn['weights_file']}")
 
 
 if __name__ == "__main__":

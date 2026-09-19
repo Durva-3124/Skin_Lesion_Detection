@@ -34,6 +34,8 @@ All numbers on ISIC 2018 Task 1 (2,594 images + pixel-level masks).
 - On-device stage: U-Net (MobileNetV2 encoder) — reproduce and benchmark in Module 4/5.
 - Skip GAN-assisted and PVT variants — marginal accuracy gain does not justify training cost or edge infeasibility.
 
+**Encoder decision note (Module 3 → Module 4):** MobileNetV2 was chosen over ResNet34 as the on-device segmentation encoder. Reason: MobileNetV2 has ~3.5M params vs ResNet34's ~21M, is explicitly designed for edge/mobile deployment, and is TensorRT INT8 compatible. ResNet34 offers no edge-feasibility advantage over MobileNetV2 and was not benchmarked in any Jetson Nano deployment paper found in Module 2. This decision is reflected in `src/segmentation/model.py` which implements `UNetVGG16` and `UNetMobileNetV2` — ResNet34 is not implemented.
+
 **YOLO decision point:**
 YOLO is an object detector (bounding boxes), not a segmenter. Only relevant if TejaLens's camera captures a wide-field body image and needs to locate the lesion before cropping. If the device captures a tight, centered lesion crop already, skip YOLO entirely — U-Net directly on the crop is simpler and sufficient. This depends on the device's actual optics/framing — confirm with hardware spec before Module 4.
 
