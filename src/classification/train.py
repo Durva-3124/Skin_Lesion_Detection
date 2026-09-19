@@ -97,7 +97,8 @@ def train(
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
-    save_path = save_path or pathlib.Path(f"{model_name}_{dataset_name}.pth")
+    save_path = pathlib.Path(save_path or f"{model_name}_{dataset_name}.pth")
+    save_path.parent.mkdir(parents=True, exist_ok=True)
     best_f1 = 0.0
 
     for epoch in range(1, epochs + 1):
