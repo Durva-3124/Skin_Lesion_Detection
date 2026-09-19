@@ -83,9 +83,11 @@ class HAM10000Dataset(Dataset):
         return image, self.labels[idx]
 
     def class_weights(self) -> torch.Tensor:
+        """Inverse-frequency weights, normalized to num_classes mean=1 for stable loss scaling."""
         counts = np.bincount(self.labels, minlength=len(HAM_CLASSES)).astype(float)
         weights = 1.0 / np.where(counts == 0, 1, counts)
-        return torch.tensor(weights / weights.sum(), dtype=torch.float32)
+        weights = weights / weights.mean()  # scale so mean=1, not sum=1
+        return torch.tensor(weights, dtype=torch.float32)
 
     def sample_weights(self) -> list:
         cw = self.class_weights().numpy()
@@ -130,9 +132,11 @@ class ISIC2019Dataset(Dataset):
         return image, self.labels[idx]
 
     def class_weights(self) -> torch.Tensor:
+        """Inverse-frequency weights, normalized to num_classes mean=1 for stable loss scaling."""
         counts = np.bincount(self.labels, minlength=len(ISIC19_CLASSES)).astype(float)
         weights = 1.0 / np.where(counts == 0, 1, counts)
-        return torch.tensor(weights / weights.sum(), dtype=torch.float32)
+        weights = weights / weights.mean()
+        return torch.tensor(weights, dtype=torch.float32)
 
 
 def get_dataloaders(dataset_name="ham10000", batch_size=32, image_size=224, num_workers=0):
