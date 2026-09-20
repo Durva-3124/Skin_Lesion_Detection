@@ -48,11 +48,11 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 | Model | Reported Accuracy | F1 / Sensitivity | Params (approx.) | Size (MB approx.) | Jetson Nano Feasibility | Source |
 |---|---|---|---|---|---|---|
 | **MobileNetV2** | Lower end — weakest in most comparative studies | ~80–85% F1 (literature estimate) | ~3.5M | ~14MB | High — designed for mobile/edge, TensorRT INT8 clean | Literature estimate. Lowest accuracy ceiling of all candidates. |
-| **EfficientNet-B0** | 96–97.15% (balanced split) | 95% precision, ~97% sensitivity | ~5.3M | ~20MB | High — best accuracy/size tradeoff, realistic Nano candidate | PARTIAL: MDPI NDT 2025, DOI: 10.3390/ndt3040023. Balanced HAM10000. **REPRODUCED: HAM10000 (7-class, imbalanced) — Accuracy=0.7696, Macro F1=0.7384, Sensitivity=0.8222, 30 epochs, weighted CE loss, Kaggle T4. ISIC 2019 (8-class) — Accuracy=0.7081, Macro F1=0.7342, Sensitivity=0.8195, 20 epochs.** Gap vs literature explained by imbalanced split — literature numbers use balanced/resampled splits. |
+| **EfficientNet-B0** | 96–97.15% (balanced split) | 95% precision, ~97% sensitivity | ~5.3M | ~20MB | High — best accuracy/size tradeoff, realistic Nano candidate | PARTIAL: MDPI NDT 2025, DOI: 10.3390/ndt3040023. Balanced HAM10000. **REPRODUCED (reports/eval_ce_baseline.json, 2026-09-19): HAM10000 val (1,502 samples, val_fraction=0.15, seed=42) — Accuracy=0.7696, Macro F1=0.7384, Mean malignant recall=0.8027 (mel=0.7943, bcc=0.9101, akiec=0.7037), nv recall=0.7418. ISIC 2019 (8-class) — Accuracy=0.7081, Macro F1=0.7342, 20 epochs.** Gap vs literature explained by imbalanced split. |
 | **EfficientNet-B3/B4** | Higher than B0 on training accuracy; generalization gap widens B1→B4 | — | ~12–19M | ~48–75MB | Medium — heavier than B0, still edge-plausible with quantization | Literature estimate. Not recommended as primary on-device model. |
 | **ResNet-50** | ~86–90% | — | ~25M | ~98MB | Medium — larger than EfficientNet-B0 for similar or lower accuracy | PARTIAL: DSCC_Net, PMC10093058. ResNet-152 reported 89.68% on ISIC 2020/HAM10000/DermIS combined. |
 | **Plain ViT (ViT-B/16)** | ~84–90% typical | — | ~86M | ~330MB | Low — too large and data-hungry; slower without heavy optimization | Literature estimate. Not recommended for either track. |
-| **Swin Transformer (small)** | ~95%+ on harder/imbalanced sets; outperforms CNNs by 10+ points on mobile-acquired images | — | ~28M | ~110MB | Low — same edge problem as ViT; worse for Maxwell GPU specifically | VERIFIED: arXiv 2509.04800, Sept 2025. Best performer on mobile-acquired images — relevant for TejaLens generalization. **REPRODUCED: HAM10000 (7-class, imbalanced) — Accuracy=0.7716, Macro F1=0.7393, Sensitivity=0.8094, 25/30 epochs (session timeout), weighted CE loss, Kaggle T4. Marginally outperforms EfficientNet-B0 on F1 as expected for research model.** |
+| **Swin Transformer (small)** | ~95%+ on harder/imbalanced sets; outperforms CNNs by 10+ points on mobile-acquired images | — | ~28M | ~110MB | Low — same edge problem as ViT; worse for Maxwell GPU specifically | VERIFIED: arXiv 2509.04800, Sept 2025. Best performer on mobile-acquired images — relevant for TejaLens generalization. **REPRODUCED (reports/eval_ce_baseline.json, 2026-09-19): HAM10000 val (1,502 samples, same split as B0) — Accuracy=0.4747, Macro F1=0.5790, Mean malignant recall=0.8857 (mel=0.8800, bcc=0.9438, akiec=0.8333), BUT nv recall=0.2776 — model misclassifies 72% of nevi. NOT deployable in current state. Needs retraining. The F1=0.7393 reported during training was a mid-run checkpoint value, not a held-out eval — that number is superseded by this eval.** |
 | **EfficientFormerV2** | 97.11% (balanced HAM10000) | F1 97.14%, Sensitivity 96.85%, Specificity 96.70% | Lightweight hybrid | ~30MB (literature estimate) | Medium-High — purpose-built mobile-friendly transformer hybrid | VERIFIED: Manzoor et al., DIGITAL HEALTH 2025, DOI: 10.1177/20552076251351858. Balanced split only — check imbalanced performance. |
 | **GlobalSkinNet (CNN+Transformer hybrid)** | 98% HAM10000, 98% ISIC-2019, 97% ISIC-2020, 100% PH2 (caution: 200 images) | — | Not reported | Not reported | Unknown — model size not clearly reported | VERIFIED: Scientific Reports 2026, DOI: 10.1038/s41598-026-43376-0. Cross-dataset consistency is a strength. |
 | **Swin-ViT + EfficientNetB4 Ensemble** | 98.5% (Eastern-population 7-class dataset) | — | Sum of member models | >200MB combined | Not edge-feasible — server-side only | VERIFIED: Bioengineering MDPI 2025, DOI: 10.3390/bioengineering12090934. Research accuracy ceiling. |
@@ -111,20 +111,22 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 
 ## 5. Module 4 Reproduced Results Summary
 
-| Model | Dataset | Accuracy | Macro F1 | Sensitivity | Dice | Notes |
-|---|---|---|---|---|---|---|
-| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | **0.9043** | Target was >0.90 ✓ |
-| EfficientNet-B0 | HAM10000 (7-class) | 0.7696 | **0.7384** | 0.8222 | — | On-device deployment model |
-| Swin-Small | HAM10000 (7-class) | 0.7716 | **0.7393** | 0.8094 | — | Research/benchmark model |
-| EfficientNet-B0 | ISIC 2019 (8-class) | 0.7081 | **0.7342** | 0.8195 | — | Generalization to 8-class set |
+_All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19T12:36:01, device: cuda, val_split: HAMValDataset val_fraction=0.15 seed=42, 1,502 samples). Segmentation Dice sourced from Kaggle training terminal output — no saved metrics file exists for it yet._
 
-**Key observations:**
-- Swin-Small marginally outperforms EfficientNet-B0 on F1 (0.7393 vs 0.7384) confirming it as the research model
-- Sensitivity consistently ~0.82 across all classifiers — acceptable for pre-screening
+| Model | Dataset | Accuracy | Macro F1 | Mean Malignant Recall | nv Recall | Dice | Status |
+|---|---|---|---|---|---|---|---|
+| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9043** | ✓ Deployable |
+| EfficientNet-B0 | HAM10000 (7-class) | **0.7696** | **0.7384** | **0.8027** | 0.7418 | — | ✓ Deployable |
+| Swin-Small | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | **0.2776** | — | ✗ Needs retraining |
+| EfficientNet-B0 | ISIC 2019 (8-class) | 0.7081 | 0.7342 | — | — | — | ✓ Trained |
+
+**Key findings from eval_ce_baseline.json:**
+- EfficientNet-B0 is the only deployable classifier — balanced across all classes
+- Swin-Small has superior malignant recall (0.8857 vs 0.8027) but nv recall collapsed to 0.2776 — it predicts 500/980 nevi as mel, causing 47% overall accuracy. Not usable until retrained
 - Gap vs literature (97%+) is explained by imbalanced splits — literature uses balanced/resampled data
-- All models trained with weighted CE loss to handle HAM10000's ~50:1 NV:DF imbalance
+- Focal loss retrain of EfficientNet-B0 also failed (reports/eval_focal.json: acc=0.3129, nv recall=0.0786) — weights in experiments/
 
-**Remaining for Module 5:**
-1. Export EfficientNet-B0 to TensorRT INT8 and measure real FPS/latency on Jetson Nano
-2. Confirm YOLO decision based on TejaLens camera framing spec
-3. Test on ISIC 2024 SLICE-3D as held-out generalization test (non-dermoscopic proxy)
+**Open items before Module 4 is fully closed:**
+1. Retrain Swin-Small with lower LR (1e-5) and longer warmup to fix nv collapse
+2. Save U-Net segmentation metrics to a JSON file (currently only in training terminal output)
+3. Test EfficientNet-B0 on ISIC 2024 SLICE-3D as held-out generalization test

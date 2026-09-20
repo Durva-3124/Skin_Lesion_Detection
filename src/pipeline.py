@@ -10,7 +10,6 @@ Usage:
     print(result)
 """
 
-import pathlib
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -53,12 +52,12 @@ class TejaLensPipeline:
 
         # Segmentation model
         self.seg_model = get_segmentation_model(encoder=seg_encoder).to(self.device)
-        self.seg_model.load_state_dict(torch.load(seg_weights, map_location=self.device))
+        self.seg_model.load_state_dict(torch.load(seg_weights, map_location=self.device, weights_only=True))
         self.seg_model.eval()
 
         # Classification model
         self.cls_model = get_classification_model(cls_model, num_classes=num_classes).to(self.device)
-        self.cls_model.load_state_dict(torch.load(cls_weights, map_location=self.device))
+        self.cls_model.load_state_dict(torch.load(cls_weights, map_location=self.device, weights_only=True))
         self.cls_model.eval()
 
     # ------------------------------------------------------------------
@@ -81,7 +80,7 @@ class TejaLensPipeline:
     def _segment(self, tensor: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             mask_logit = self.seg_model(tensor.unsqueeze(0).to(self.device))
-            mask = torch.sigmoid(mask_logit).squeeze()
+            mask = torch.sigmoid(mask_logit).squeeze(0).squeeze(0)
         return mask  # H x W, values 0–1
 
     # ------------------------------------------------------------------
@@ -98,12 +97,13 @@ class TejaLensPipeline:
         self.cls_model.apply(enable_dropout)
 
         probs_list = []
-        with torch.no_grad():
-            for _ in range(self.mc_passes):
-                logits = self.cls_model(inp)
-                probs_list.append(F.softmax(logits, dim=1).cpu().numpy())
-
-        self.cls_model.eval()  # restore eval mode
+        try:
+            with torch.no_grad():
+                for _ in range(self.mc_passes):
+                    logits = self.cls_model(inp)
+                    probs_list.append(F.softmax(logits, dim=1).cpu().numpy())
+        finally:
+            self.cls_model.eval()  # restore eval mode
 
         probs_stack = np.stack(probs_list, axis=0)  # (passes, 1, num_classes)
         mean_probs = probs_stack.mean(axis=0).squeeze()   # (num_classes,)

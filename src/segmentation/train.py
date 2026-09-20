@@ -18,15 +18,14 @@ _KAGGLE_SEG = pathlib.Path("/kaggle/input/datasets/tschandl/isic2018-challenge-t
 _COLAB_SEG  = pathlib.Path("/content/data/isic2018_seg")
 _REPO_SEG   = pathlib.Path(__file__).parent.parent.parent / "data" / "isic2018_seg"
 
-if _KAGGLE_SEG.exists():
-    SEG_DIR  = _KAGGLE_SEG
-elif _COLAB_SEG.exists():
-    SEG_DIR  = _COLAB_SEG
-else:
-    SEG_DIR  = _REPO_SEG
-
-IMG_DIR  = SEG_DIR / "ISIC2018_Task1-2_Training_Input"
-MASK_DIR = SEG_DIR / "ISIC2018_Task1_Training_GroundTruth"
+def _resolve_seg_dirs():
+    if _KAGGLE_SEG.exists():
+        seg_dir = _KAGGLE_SEG
+    elif _COLAB_SEG.exists():
+        seg_dir = _COLAB_SEG
+    else:
+        seg_dir = _REPO_SEG
+    return seg_dir / "ISIC2018_Task1-2_Training_Input", seg_dir / "ISIC2018_Task1_Training_GroundTruth"
 
 
 class SegmentationDataset(Dataset):
@@ -71,6 +70,7 @@ def dice_score(pred, target, threshold=0.5):
 
 
 def get_seg_dataloaders(image_size=256, batch_size=8, val_fraction=0.15, seed=42):
+    IMG_DIR, MASK_DIR = _resolve_seg_dirs()
     images = sorted(IMG_DIR.glob("*.jpg"))
     masks = [MASK_DIR / (p.stem + "_segmentation.png") for p in images]
     pairs = [(i, m) for i, m in zip(images, masks) if m.exists()]

@@ -1,0 +1,275 @@
+{
+  "timestamp": "2026-09-19T12:36:01.151030",
+  "device": "cuda",
+  "ham_classes": [
+    "akiec",
+    "bcc",
+    "bkl",
+    "df",
+    "mel",
+    "nv",
+    "vasc"
+  ],
+  "models": {
+    "efficientnet_b0": {
+      "model_name": "efficientnet_b0",
+      "weights_file": "/kaggle/input/datasets/durvapawar/models/models/efficientnet_b0_ham10000.pth",
+      "weights_size_mb": 16.37,
+      "val_split": "HAMValDataset(val_fraction=0.15, seed=42)",
+      "val_samples": 1502,
+      "overall_accuracy": 0.7696,
+      "per_class": {
+        "akiec": {
+          "recall": 0.7037,
+          "precision": 0.5429,
+          "f1": 0.6129,
+          "support": 54,
+          "malignant": true
+        },
+        "bcc": {
+          "recall": 0.9101,
+          "precision": 0.6923,
+          "f1": 0.7864,
+          "support": 89,
+          "malignant": true
+        },
+        "bkl": {
+          "recall": 0.8129,
+          "precision": 0.6029,
+          "f1": 0.6923,
+          "support": 155,
+          "malignant": false
+        },
+        "df": {
+          "recall": 0.8235,
+          "precision": 0.8235,
+          "f1": 0.8235,
+          "support": 17,
+          "malignant": false
+        },
+        "mel": {
+          "recall": 0.7943,
+          "precision": 0.4618,
+          "f1": 0.584,
+          "support": 175,
+          "malignant": true
+        },
+        "nv": {
+          "recall": 0.7418,
+          "precision": 0.9758,
+          "f1": 0.8429,
+          "support": 980,
+          "malignant": false
+        },
+        "vasc": {
+          "recall": 0.9687,
+          "precision": 0.7209,
+          "f1": 0.8267,
+          "support": 32,
+          "malignant": false
+        }
+      },
+      "malignant_recall": {
+        "mel": 0.7943,
+        "akiec": 0.7037,
+        "bcc": 0.9101
+      },
+      "mean_malignant_recall": 0.8027,
+      "confusion_matrix": [
+        [
+          38,
+          6,
+          9,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          81,
+          3,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          12,
+          1,
+          126,
+          1,
+          11,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          14,
+          2,
+          0,
+          0
+        ],
+        [
+          7,
+          1,
+          14,
+          0,
+          139,
+          13,
+          1
+        ],
+        [
+          12,
+          27,
+          56,
+          1,
+          148,
+          727,
+          9
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          31
+        ]
+      ]
+    },
+    "swin_small": {
+      "model_name": "swin_small",
+      "weights_file": "/kaggle/input/datasets/durvapawar/models/models/swin_small_ham10000.pth",
+      "weights_size_mb": 195.96,
+      "val_split": "HAMValDataset(val_fraction=0.15, seed=42)",
+      "val_samples": 1502,
+      "overall_accuracy": 0.4747,
+      "per_class": {
+        "akiec": {
+          "recall": 0.8333,
+          "precision": 0.5114,
+          "f1": 0.6338,
+          "support": 54,
+          "malignant": true
+        },
+        "bcc": {
+          "recall": 0.9438,
+          "precision": 0.5957,
+          "f1": 0.7304,
+          "support": 89,
+          "malignant": true
+        },
+        "bkl": {
+          "recall": 0.729,
+          "precision": 0.4956,
+          "f1": 0.5901,
+          "support": 155,
+          "malignant": false
+        },
+        "df": {
+          "recall": 0.8824,
+          "precision": 0.5357,
+          "f1": 0.6667,
+          "support": 17,
+          "malignant": false
+        },
+        "mel": {
+          "recall": 0.88,
+          "precision": 0.2258,
+          "f1": 0.3594,
+          "support": 175,
+          "malignant": true
+        },
+        "nv": {
+          "recall": 0.2776,
+          "precision": 0.9963,
+          "f1": 0.4342,
+          "support": 980,
+          "malignant": false
+        },
+        "vasc": {
+          "recall": 0.9375,
+          "precision": 0.4839,
+          "f1": 0.6383,
+          "support": 32,
+          "malignant": false
+        }
+      },
+      "malignant_recall": {
+        "mel": 0.88,
+        "akiec": 0.8333,
+        "bcc": 0.9438
+      },
+      "mean_malignant_recall": 0.8857,
+      "confusion_matrix": [
+        [
+          45,
+          6,
+          1,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          4,
+          84,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          14,
+          4,
+          113,
+          1,
+          23,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15,
+          1,
+          0,
+          1
+        ],
+        [
+          7,
+          4,
+          8,
+          0,
+          154,
+          1,
+          1
+        ],
+        [
+          18,
+          43,
+          105,
+          12,
+          500,
+          272,
+          30
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          2,
+          0,
+          30
+        ]
+      ]
+    }
+  }
+}

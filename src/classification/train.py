@@ -90,7 +90,7 @@ def train(
     model = get_classification_model(model_name, num_classes=num_classes).to(device)
 
     if loss_type == "focal":
-        criterion = FocalLoss(alpha=class_weights, gamma=2.0)
+        criterion = FocalLoss(alpha=class_weights, gamma=1.0)  # gamma=1.0 avoids over-suppressing majority class (nv)
     else:
         criterion = nn.CrossEntropyLoss(weight=class_weights)
 

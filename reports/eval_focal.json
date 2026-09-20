@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-09-19T16:01:14.975980",
+  "weights_src": "efficientnet_b0_ham10000_focal.pth",
+  "device": "cpu",
+  "loss": "focal",
+  "overall_accuracy": 0.3129,
+  "recall": {
+    "akiec": 0.8148,
+    "bcc": 0.8539,
+    "bkl": 0.6323,
+    "df": 1.0,
+    "mel": 0.7314,
+    "nv": 0.0786,
+    "vasc": 0.9375
+  },
+  "targets_met": {
+    "mel": false,
+    "akiec": true,
+    "nv": false,
+    "acc": false
+  },
+  "pass": false,
+  "before_ce": {
+    "mel": 0.794,
+    "akiec": 0.704,
+    "nv": 0.742,
+    "acc": 0.769
+  }
+}

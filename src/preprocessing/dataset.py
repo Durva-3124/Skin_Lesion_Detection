@@ -13,11 +13,16 @@ from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 import torch
 
 # --- Path resolution ---
-_REPO_DATA   = pathlib.Path(__file__).parent.parent.parent / "data"
 _COLAB_DATA  = pathlib.Path("/content/data")
 _KAGGLE_HAM  = pathlib.Path("/kaggle/input/datasets/kmader/skin-cancer-mnist-ham10000")
 _KAGGLE_SEG  = pathlib.Path("/kaggle/input/datasets/tschandl/isic2018-challenge-task1-data-segmentation")
 _KAGGLE_I19  = pathlib.Path("/kaggle/input/datasets/andrewmvd/isic-2019")
+# _REPO_DATA: safe fallback that works whether src is run locally or loaded as a Kaggle dataset
+_REPO_DATA   = (
+    pathlib.Path("/kaggle/working/data")
+    if pathlib.Path("/kaggle").exists()
+    else pathlib.Path(__file__).parent.parent.parent / "data"
+)
 
 def _on_kaggle():
     return _KAGGLE_HAM.exists()
@@ -96,7 +101,7 @@ class HAM10000Dataset(Dataset):
 
 class ISIC2019Dataset(Dataset):
     def __init__(self, split="train", transform=None, val_fraction=0.15, seed=42):
-        if _on_kaggle():
+        if _KAGGLE_I19.exists():
             gt = pd.read_csv(_KAGGLE_I19 / "ISIC_2019_Training_GroundTruth.csv")
             self.image_dir = _KAGGLE_I19 / "ISIC_2019_Training_Input" / "ISIC_2019_Training_Input"
         elif _on_colab():
@@ -137,6 +142,10 @@ class ISIC2019Dataset(Dataset):
         weights = 1.0 / np.where(counts == 0, 1, counts)
         weights = weights / weights.mean()
         return torch.tensor(weights, dtype=torch.float32)
+
+    def sample_weights(self) -> list:
+        cw = self.class_weights().numpy()
+        return [cw[label] for label in self.labels]
 
 
 def get_dataloaders(dataset_name="ham10000", batch_size=32, image_size=224, num_workers=0):
