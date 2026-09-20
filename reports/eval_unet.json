@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-09-20T18:25:52.828100",
+  "device": "cuda",
+  "model": "unet_vgg16",
+  "weights_file": "/kaggle/input/datasets/durvapawar/models/models/unet_vgg16.pth",
+  "val_samples": 389,
+  "val_fraction": 0.15,
+  "seed": 42,
+  "image_size": 256,
+  "mean_dice": 0.9223
+}

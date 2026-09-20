@@ -115,7 +115,7 @@ _All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19
 
 | Model | Dataset | Accuracy | Macro F1 | Mean Malignant Recall | nv Recall | Dice | Status |
 |---|---|---|---|---|---|---|---|
-| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9043** | ✓ Deployable |
+| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9223** | ✓ Deployable |
 | EfficientNet-B0 | HAM10000 (7-class) | **0.7696** | **0.7384** | **0.8027** | 0.7418 | — | ✓ Deployable |
 | Swin-Small (original) | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | 0.2776 | — | ✗ nv collapse |
 | Swin-Small v2 (retrain lr=1e-5, 23 epochs) | HAM10000 (7-class) | 0.4015 | 0.4496 | 0.8069 | 0.2378 | — | ✗ Worse — retrain failed |
@@ -130,5 +130,5 @@ _All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19
 
 **Open items before Module 4 is fully closed:**
 1. ~~Retrain Swin-Small~~ — closed, both attempts failed, original checkpoint retained as research benchmark
-2. Save U-Net segmentation metrics to a JSON file (currently only in training terminal output)
+2. ~~Save U-Net segmentation metrics to JSON~~ — closed, `reports/eval_unet.json` (2026-09-20): Dice=0.9223 on ISIC 2018 val (389 samples, val_fraction=0.15, seed=42). Supersedes terminal-only number of 0.9043
 3. Test EfficientNet-B0 on ISIC 2024 SLICE-3D as held-out generalization test
