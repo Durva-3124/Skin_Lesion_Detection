@@ -111,22 +111,24 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 
 ## 5. Module 4 Reproduced Results Summary
 
-_All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19T12:36:01, device: cuda, val_split: HAMValDataset val_fraction=0.15 seed=42, 1,502 samples). Segmentation Dice sourced from Kaggle training terminal output — no saved metrics file exists for it yet._
+_All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19T12:36:01, device: cuda, val_split: HAMValDataset val_fraction=0.15 seed=42, 1,502 samples). Swin-Small v2 numbers from `reports/eval_swin_v2.json` (timestamp: 2026-09-20T18:20:01). Segmentation Dice sourced from Kaggle training terminal output — no saved metrics file exists for it yet._
 
 | Model | Dataset | Accuracy | Macro F1 | Mean Malignant Recall | nv Recall | Dice | Status |
 |---|---|---|---|---|---|---|---|
 | U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9043** | ✓ Deployable |
 | EfficientNet-B0 | HAM10000 (7-class) | **0.7696** | **0.7384** | **0.8027** | 0.7418 | — | ✓ Deployable |
-| Swin-Small | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | **0.2776** | — | ✗ Needs retraining |
+| Swin-Small (original) | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | 0.2776 | — | ✗ nv collapse |
+| Swin-Small v2 (retrain lr=1e-5, 23 epochs) | HAM10000 (7-class) | 0.4015 | 0.4496 | 0.8069 | 0.2378 | — | ✗ Worse — retrain failed |
 | EfficientNet-B0 | ISIC 2019 (8-class) | 0.7081 | 0.7342 | — | — | — | ✓ Trained |
 
-**Key findings from eval_ce_baseline.json:**
+**Key findings:**
 - EfficientNet-B0 is the only deployable classifier — balanced across all classes
-- Swin-Small has superior malignant recall (0.8857 vs 0.8027) but nv recall collapsed to 0.2776 — it predicts 500/980 nevi as mel, causing 47% overall accuracy. Not usable until retrained
-- Gap vs literature (97%+) is explained by imbalanced splits — literature uses balanced/resampled data
+- Swin-Small nv collapse persists across both training runs. v2 retrain (lr=1e-5, weighted CE, 23 epochs) made things worse: F1 dropped from 0.5790 → 0.4496, nv recall dropped from 0.2776 → 0.2378. The model overfits minority classes (df recall=1.0, vasc=0.9687) while further collapsing nv
+- Swin-Small is not suitable for HAM10000 without significant regularization changes (label smoothing, stronger augmentation, or frozen encoder fine-tuning). Closed as research-only benchmark — original checkpoint retained
 - Focal loss retrain of EfficientNet-B0 also failed (reports/eval_focal.json: acc=0.3129, nv recall=0.0786) — weights in experiments/
+- Gap vs literature (97%+) explained by imbalanced splits — literature uses balanced/resampled data
 
 **Open items before Module 4 is fully closed:**
-1. Retrain Swin-Small with lower LR (1e-5) and longer warmup to fix nv collapse
+1. ~~Retrain Swin-Small~~ — closed, both attempts failed, original checkpoint retained as research benchmark
 2. Save U-Net segmentation metrics to a JSON file (currently only in training terminal output)
 3. Test EfficientNet-B0 on ISIC 2024 SLICE-3D as held-out generalization test
