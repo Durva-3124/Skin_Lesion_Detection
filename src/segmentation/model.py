@@ -91,40 +91,53 @@ class UNetMobileNetV2(nn.Module):
         mob = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1 if pretrained else None)
         features = mob.features
 
-        # MobileNetV2 encoder stages
-        self.enc0 = features[0]         # stride 2, 32 ch
-        self.enc1 = features[1:3]       # stride 2, 16->24 ch
-        self.enc2 = features[3:5]       # stride 2, 32 ch
-        self.enc3 = features[5:8]       # stride 2, 64 ch
-        self.enc4 = features[8:14]      # stride 2, 96->160 ch
-        self.enc5 = features[14:18]     # 320 ch
+        # Encoder stages — verified channel/spatial map at 256x256 input:
+        # features[0]:  32ch 128x128  (stride-2)
+        # features[1:3]: 24ch 64x64   (stride-2 at features[2])
+        # features[3:7]: 32ch 32x32   (stride-2 at features[4])
+        # features[7:11]: 64ch 16x16  (stride-2 at features[7])
+        # features[11:14]: 96ch 16x16 (no stride change)
+        # features[14:17]: 160ch 8x8  (stride-2 at features[14])
+        # features[17]: 320ch 8x8
+        self.enc0 = features[0]          # 32ch,  128x128
+        self.enc1 = features[1:3]        # 24ch,  64x64
+        self.enc2 = features[3:7]        # 32ch,  32x32
+        self.enc3 = features[7:11]       # 64ch,  16x16
+        self.enc4 = features[11:14]      # 96ch,  16x16
+        self.enc5 = features[14:17]      # 160ch, 8x8
+        self.enc6 = features[17:18]      # 320ch, 8x8
 
         self.bottleneck = ConvBlock(320, 512)
 
-        self.up4 = UpBlock(512, 96, 256)
-        self.up3 = UpBlock(256, 32, 128)
-        self.up2 = UpBlock(128, 24, 64)
-        self.up1 = UpBlock(64, 16, 32)
-        self.up0 = UpBlock(32, 32, 16)
+        self.up6 = UpBlock(512, 160, 256)   # upsample 8->16, skip=enc5 160ch
+        self.up5 = UpBlock(256,  96, 128)   # no upsample (enc4 same spatial), skip=enc4 96ch
+        self.up4 = UpBlock(128,  64, 128)   # no upsample (enc3 same spatial), skip=enc3 64ch
+        self.up3 = UpBlock(128,  32,  64)   # upsample 16->32, skip=enc2 32ch
+        self.up2 = UpBlock( 64,  24,  32)   # upsample 32->64, skip=enc1 24ch
+        self.up1 = UpBlock( 32,  32,  16)   # upsample 64->128, skip=enc0 32ch
 
         self.out = nn.Conv2d(16, num_classes, kernel_size=1)
 
     def forward(self, x):
-        e0 = self.enc0(x)
-        e1 = self.enc1(e0)
-        e2 = self.enc2(e1)
-        e3 = self.enc3(e2)
-        e4 = self.enc4(e3)
-        e5 = self.enc5(e4)
+        e0 = self.enc0(x)    # 32ch,  128x128
+        e1 = self.enc1(e0)   # 24ch,  64x64
+        e2 = self.enc2(e1)   # 32ch,  32x32
+        e3 = self.enc3(e2)   # 64ch,  16x16
+        e4 = self.enc4(e3)   # 96ch,  16x16
+        e5 = self.enc5(e4)   # 160ch, 8x8
+        e6 = self.enc6(e5)   # 320ch, 8x8
 
-        b = self.bottleneck(e5)
+        b  = self.bottleneck(e6)   # 512ch, 8x8
 
-        d4 = self.up4(b, e4)
-        d3 = self.up3(d4, e3)
-        d2 = self.up2(d3, e2)
-        d1 = self.up1(d2, e1)
-        d0 = self.up0(d1, e0)
+        d6 = self.up6(b,  e5)   # 256ch, 16x16
+        d5 = self.up5(d6, e4)   # 128ch, 16x16
+        d4 = self.up4(d5, e3)   # 128ch, 16x16
+        d3 = self.up3(d4, e2)   # 64ch,  32x32
+        d2 = self.up2(d3, e1)   # 32ch,  64x64
+        d1 = self.up1(d2, e0)   # 16ch,  128x128
 
+        # Final upsample to input resolution
+        d0 = torch.nn.functional.interpolate(d1, scale_factor=2, mode='bilinear', align_corners=False)
         return self.out(d0)
 
 

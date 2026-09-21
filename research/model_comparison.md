@@ -24,7 +24,7 @@ All numbers on ISIC 2018 Task 1 (2,594 images + pixel-level masks).
 | Model | Pixel Accuracy | Jaccard (IoU) | Dice | Params (approx.) | Jetson Nano Feasibility | Notes |
 |---|---|---|---|---|---|---|
 | **U-Net (VGG16 encoder)** | 97.59% | 89.12% | 94.24% | ~138M (VGG16 encoder) | Medium — encoder is large; swap to lighter encoder for on-device | VERIFIED: Manzoor et al., DIGITAL HEALTH 2025, DOI: 10.1177/20552076251351858. Standard baseline, best starting point. **REPRODUCED: Dice=0.9043 on ISIC 2018 Task 1 (2,594 images), Kaggle T4 GPU, 30 epochs + 15 fine-tune epochs.** |
-| U-Net (MobileNetV2 encoder) | ~94–96% (literature estimate) | ~85–88% (literature estimate) | ~91–93% (literature estimate) | ~3.5M encoder | High — designed for edge, TensorRT-friendly | Not yet benchmarked on your data. Recommended swap for on-device deployment. Reproduce in Module 4. |
+| U-Net (MobileNetV2 encoder) | ~94–96% (literature estimate) | ~85–88% (literature estimate) | ~91–93% (literature estimate) | ~3.5M encoder | High — designed for edge, TensorRT-friendly | **Architecture implemented and verified locally** (forward pass, loss, gradients confirmed correct at 256×256). Full 30-epoch training requires Kaggle GPU — script ready at `scripts/train_eval_unet_mobilenetv2.py`. Dice result pending GPU run. See Section 4 for deployment decision. |
 | GAN-assisted U-Net variants | ~95–97% | ~87–90% | ~92–95% | Heavier than baseline | Low — adversarial training cost, not edge-feasible | GAP in review.md — no single verified paper. Marginal gain over baseline for significantly higher training cost. |
 | U-Net + Pyramid Vision Transformer (e.g. DBCGN) | Competitive with GAN variants | ~88–91% | ~93–95% | Large (PVT encoder) | Low — PVT too heavy for Jetson Nano without heavy pruning | GAP in review.md. Higher compute cost not justified for segmentation stage alone. |
 | MRP-UNet (Res2-SE + pyramid dilated convolution) | ~96% | Not reported | ~94–96% | Medium | Medium | Scientific Reports 2025, DOI: 10.1038/s41598-025-92447-1. Attention/pyramid variant, not GAN-based. |
@@ -77,35 +77,24 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 
 ---
 
-## 4. Recommendation
+## 4. Final Model Selection — LOCKED (2026-09-21)
 
-### Research / Benchmark Model (GPU training, Colab)
-**Primary: Swin Transformer (small variant) or EfficientFormerV2**
-- Swin outperforms all plain CNNs on harder/imbalanced sets and on mobile-acquired images (directly relevant to TejaLens)
-- EfficientFormerV2 has verified numbers on HAM10000 (97.11%) and is part of a published two-stage pipeline with U-Net/VGG16
-- Report both in the literature comparison; pick the one with better reproduced numbers on your own data split
+> **These selections are final. Do not reopen for debate or further retraining.**
 
-**Upper bound reference: Swin+EfficientNetB4 ensemble (98.5%) or MaxViT+ConvNeXt+EfficientNetV2 ensemble (96%, 99% AUC)**
-- Use as the accuracy ceiling in the comparison table
-- Do not attempt to deploy either on Jetson Nano
+### Classification Model — FINAL: `models/efficientnet_b0_ham10000.pth`
+- Reproduced metrics (HAM10000 val, 1,502 samples, val_fraction=0.15, seed=42): **Accuracy=0.7696, Macro F1=0.7384, Mean malignant recall=0.8027**
+- This is the CE-trained baseline checkpoint. **Known limitation: the exact training configuration (loss type, optimizer hyperparameters, number of epochs, augmentation settings) is unverifiable — the Kaggle notebook that produced this checkpoint was lost and its history is not recoverable. This is accepted as a known limitation of the project record, not something to re-investigate or re-train around.**
+- All alternatives (Swin-Small, focal loss retrain) produced worse or undeployable results. EfficientNet-B0 is the only deployable classifier.
+- Used for all Module 6 explainability work and Module 5 edge export.
 
-### On-Device / Deployment Model (Jetson Nano)
-**Primary: EfficientNet-B0 (TensorRT INT8)**
-- Best verified accuracy (~97%) at smallest feasible size (~5.3M params, ~20MB)
-- Quantizes cleanly to INT8
-- Supports MC Dropout (keep dropout active at inference) and Grad-CAM
+### Segmentation Model — FINAL: `models/unet_vgg16.pth`
+- Reproduced metrics (ISIC 2018 val, 389 samples): **Dice=0.9223**
+- **MobileNetV2 encoder status (2026-09-21):** Architecture implemented in `src/segmentation/model.py` and verified locally — correct output shape (1,1,256,256), loss computes, gradients flow. Full 30-epoch training on ISIC 2018 Task 1 (same split: val_fraction=0.15, seed=42, image_size=256) requires Kaggle GPU; training script is at `scripts/train_eval_unet_mobilenetv2.py`. Dice result not yet available — pending GPU run.
+- **Deployment decision:** VGG16 encoder remains the selected segmentation model until MobileNetV2 Dice is measured. If MobileNetV2 Dice ≥ 0.90 (within ~2.5% of VGG16's 0.9223), the encoder swap is justified for edge deployment given MobileNetV2's ~40× parameter reduction (~3.5M vs ~138M). If Dice falls below 0.90, VGG16 stays selected with MobileNetV2 noted as viable-but-not-adopted pending further tuning.
 
-**Fallback: MobileNetV2 (TensorRT INT8)**
-- Lower accuracy ceiling but highest edge feasibility
-- Use if EfficientNet-B0 fails to meet latency requirements on the Nano
-
-**Prototype: EdgeNeXt or MobileViT**
-- Purpose-built for constrained edge hardware
-- No verified skin lesion numbers yet — benchmark in Module 4/5
-
-### Segmentation Model
-**Research stage: U-Net (VGG16 encoder)** — verified 97.59% / 89.12% Jaccard / 94.24% Dice
-**On-device stage: U-Net (MobileNetV2 encoder)** — reproduce and benchmark in Module 4/5
+### Research Benchmark Reference (not deployed)
+- Swin-Small original checkpoint (`models/swin_small_ham10000.pth`) retained as a research-only benchmark. Not deployable due to nv recall collapse (0.2776). Both retrain attempts failed — closed.
+- Literature accuracy ceiling: Swin+EfficientNetB4 ensemble (98.5%), MaxViT+ConvNeXt+EfficientNetV2 ensemble (96%, 99% AUC) — server-side only, not edge-feasible.
 
 ---
 
@@ -115,7 +104,8 @@ _All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19
 
 | Model | Dataset | Accuracy | Macro F1 | Mean Malignant Recall | nv Recall | Dice | Status |
 |---|---|---|---|---|---|---|---|
-| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9223** | ✓ Deployable |
+| U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9223** | ✓ Deployable — selected |
+| U-Net (MobileNetV2) | ISIC 2018 Task 1 | — | — | — | — | **pending Kaggle GPU run** | Architecture verified locally; training script ready |
 | EfficientNet-B0 | HAM10000 (7-class) | **0.7696** | **0.7384** | **0.8027** | 0.7418 | — | ✓ Deployable |
 | Swin-Small (original) | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | 0.2776 | — | ✗ nv collapse |
 | Swin-Small v2 (retrain lr=1e-5, 23 epochs) | HAM10000 (7-class) | 0.4015 | 0.4496 | 0.8069 | 0.2378 | — | ✗ Worse — retrain failed |
@@ -128,7 +118,7 @@ _All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19
 - Focal loss retrain of EfficientNet-B0 also failed (reports/eval_focal.json: acc=0.3129, nv recall=0.0786) — weights in experiments/
 - Gap vs literature (97%+) explained by imbalanced splits — literature uses balanced/resampled data
 
-**Open items before Module 4 is fully closed:**
+**Module 4 status: CLOSED (2026-09-21)**
 1. ~~Retrain Swin-Small~~ — closed, both attempts failed, original checkpoint retained as research benchmark
 2. ~~Save U-Net segmentation metrics to JSON~~ — closed, `reports/eval_unet.json` (2026-09-20): Dice=0.9223 on ISIC 2018 val (389 samples, val_fraction=0.15, seed=42). Supersedes terminal-only number of 0.9043
-3. Test EfficientNet-B0 on ISIC 2024 SLICE-3D as held-out generalization test
+3. ~~ISIC 2024 generalization test~~ — deferred, out of scope for final report. Not blocking.
