@@ -1,0 +1,150 @@
+{
+  "timestamp": "20260919_180000",
+  "device": "cpu",
+  "ham_classes": [
+    "akiec",
+    "bcc",
+    "bkl",
+    "df",
+    "mel",
+    "nv",
+    "vasc"
+  ],
+  "script": "reports/evaluate_classifiers.py",
+  "models": {
+    "efficientnet_b0": {
+      "model_name": "efficientnet_b0",
+      "weights_file": "D:\\Atodya\\tejalens-skin-prescreen\\models\\efficientnet_b0_ham10000.pth",
+      "weights_size_mb": 16.37,
+      "val_split": "HAM10000Dataset(split='val', val_fraction=0.15, seed=42)",
+      "val_samples": 1502,
+      "preprocessing": "get_val_transforms(224): Resize(224x224) + ToTensor + ImageNet Normalize",
+      "overall_accuracy": 0.7696,
+      "per_class": {
+        "akiec": {
+          "precision": 0.5429,
+          "recall": 0.7037,
+          "f1": 0.6129,
+          "support": 54,
+          "malignant": true
+        },
+        "bcc": {
+          "precision": 0.6923,
+          "recall": 0.9101,
+          "f1": 0.7864,
+          "support": 89,
+          "malignant": true
+        },
+        "bkl": {
+          "precision": 0.6029,
+          "recall": 0.8129,
+          "f1": 0.6923,
+          "support": 155,
+          "malignant": false
+        },
+        "df": {
+          "precision": 0.8235,
+          "recall": 0.8235,
+          "f1": 0.8235,
+          "support": 17,
+          "malignant": false
+        },
+        "mel": {
+          "precision": 0.4618,
+          "recall": 0.7943,
+          "f1": 0.584,
+          "support": 175,
+          "malignant": true
+        },
+        "nv": {
+          "precision": 0.9758,
+          "recall": 0.7418,
+          "f1": 0.8429,
+          "support": 980,
+          "malignant": false
+        },
+        "vasc": {
+          "precision": 0.7209,
+          "recall": 0.9687,
+          "f1": 0.8267,
+          "support": 32,
+          "malignant": false
+        }
+      },
+      "malignant_recall": {
+        "akiec": 0.7037,
+        "mel": 0.7943,
+        "bcc": 0.9101
+      },
+      "mean_malignant_recall": 0.8027,
+      "classification_report": "              precision    recall  f1-score   support\n\n       akiec     0.5429    0.7037    0.6129        54\n         bcc     0.6923    0.9101    0.7864        89\n         bkl     0.6029    0.8129    0.6923       155\n          df     0.8235    0.8235    0.8235        17\n         mel     0.4618    0.7943    0.5840       175\n          nv     0.9758    0.7418    0.8429       980\n        vasc     0.7209    0.9688    0.8267        32\n\n    accuracy                         0.7696      1502\n   macro avg     0.6886    0.8222    0.7384      1502\nweighted avg     0.8379    0.7696    0.7850      1502\n"
+    },
+    "swin_small": {
+      "model_name": "swin_small",
+      "weights_file": "D:\\Atodya\\tejalens-skin-prescreen\\models\\swin_small_ham10000.pth",
+      "weights_size_mb": 195.96,
+      "val_split": "HAM10000Dataset(split='val', val_fraction=0.15, seed=42)",
+      "val_samples": 1502,
+      "preprocessing": "get_val_transforms(224): Resize(224x224) + ToTensor + ImageNet Normalize",
+      "overall_accuracy": 0.4747,
+      "per_class": {
+        "akiec": {
+          "precision": 0.5114,
+          "recall": 0.8333,
+          "f1": 0.6338,
+          "support": 54,
+          "malignant": true
+        },
+        "bcc": {
+          "precision": 0.5957,
+          "recall": 0.9438,
+          "f1": 0.7304,
+          "support": 89,
+          "malignant": true
+        },
+        "bkl": {
+          "precision": 0.4956,
+          "recall": 0.729,
+          "f1": 0.5901,
+          "support": 155,
+          "malignant": false
+        },
+        "df": {
+          "precision": 0.5357,
+          "recall": 0.8824,
+          "f1": 0.6667,
+          "support": 17,
+          "malignant": false
+        },
+        "mel": {
+          "precision": 0.2258,
+          "recall": 0.88,
+          "f1": 0.3594,
+          "support": 175,
+          "malignant": true
+        },
+        "nv": {
+          "precision": 0.9963,
+          "recall": 0.2776,
+          "f1": 0.4342,
+          "support": 980,
+          "malignant": false
+        },
+        "vasc": {
+          "precision": 0.4839,
+          "recall": 0.9375,
+          "f1": 0.6383,
+          "support": 32,
+          "malignant": false
+        }
+      },
+      "malignant_recall": {
+        "akiec": 0.8333,
+        "mel": 0.88,
+        "bcc": 0.9438
+      },
+      "mean_malignant_recall": 0.8857,
+      "classification_report": "              precision    recall  f1-score   support\n\n       akiec     0.5114    0.8333    0.6338        54\n         bcc     0.5957    0.9438    0.7304        89\n         bkl     0.4956    0.7290    0.5901       155\n          df     0.5357    0.8824    0.6667        17\n         mel     0.2258    0.8800    0.3594       175\n          nv     0.9963    0.2776    0.4342       980\n        vasc     0.4839    0.9375    0.6383        32\n\n    accuracy                         0.4747      1502\n   macro avg     0.5492    0.7834    0.5790      1502\nweighted avg     0.7976    0.4747    0.4733      1502\n"
+    }
+  }
+}
