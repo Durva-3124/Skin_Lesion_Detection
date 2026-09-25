@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-09-25T23:23:58.529100",
+  "device": "cpu",
+  "model": "unet_mobilenetv2",
+  "weights_file": "D:\\Atodya\\tejalens-skin-prescreen\\models\\unet_mobilenetv2.pth",
+  "val_samples": 389,
+  "val_fraction": 0.15,
+  "seed": 42,
+  "image_size": 256,
+  "mean_dice": 0.8904298734664917,
+  "mean_jaccard": 0.8205638313293457,
+  "mean_pixel_accuracy": 0.9560547494888305
+}

@@ -24,15 +24,17 @@ All numbers on ISIC 2018 Task 1 (2,594 images + pixel-level masks).
 | Model | Pixel Accuracy | Jaccard (IoU) | Dice | Params (approx.) | Jetson Nano Feasibility | Notes |
 |---|---|---|---|---|---|---|
 | **U-Net (VGG16 encoder)** | 97.59% | 89.12% | 94.24% | ~138M (VGG16 encoder) | Medium — encoder is large; swap to lighter encoder for on-device | VERIFIED: Manzoor et al., DIGITAL HEALTH 2025, DOI: 10.1177/20552076251351858. Standard baseline, best starting point. **REPRODUCED: Dice=0.9043 on ISIC 2018 Task 1 (2,594 images), Kaggle T4 GPU, 30 epochs + 15 fine-tune epochs.** |
-| U-Net (MobileNetV2 encoder) | ~94–96% (literature estimate) | ~85–88% (literature estimate) | ~91–93% (literature estimate) | ~3.5M encoder | High — designed for edge, TensorRT-friendly | **Architecture implemented and verified locally** (forward pass, loss, gradients confirmed correct at 256×256). Full 30-epoch training requires Kaggle GPU — script ready at `scripts/train_eval_unet_mobilenetv2.py`. Dice result pending GPU run. See Section 4 for deployment decision. |
+| U-Net (MobileNetV2 encoder) | 95.61% (reproduced) | **0.8206 (reproduced)** | **0.8904 (reproduced)** | ~3.5M encoder | High — designed for edge, TensorRT-friendly | Evaluated from `models/unet_mobilenetv2.pth` using the same 389-sample split, `val_fraction=0.15`, `seed=42`, `image_size=256`, and 0.5 sigmoid threshold. Dice is below the 0.90 deployment threshold, so it is evaluated but not adopted; see Section 4. |
 | GAN-assisted U-Net variants | ~95–97% | ~87–90% | ~92–95% | Heavier than baseline | Low — adversarial training cost, not edge-feasible | GAP in review.md — no single verified paper. Marginal gain over baseline for significantly higher training cost. |
 | U-Net + Pyramid Vision Transformer (e.g. DBCGN) | Competitive with GAN variants | ~88–91% | ~93–95% | Large (PVT encoder) | Low — PVT too heavy for Jetson Nano without heavy pruning | GAP in review.md. Higher compute cost not justified for segmentation stage alone. |
 | MRP-UNet (Res2-SE + pyramid dilated convolution) | ~96% | Not reported | ~94–96% | Medium | Medium | Scientific Reports 2025, DOI: 10.1038/s41598-025-92447-1. Attention/pyramid variant, not GAN-based. |
 
 **Segmentation recommendation:**
 - Research/benchmark stage: U-Net (VGG16 encoder) — verified numbers, strong baseline.
-- On-device stage: U-Net (MobileNetV2 encoder) — reproduce and benchmark in Module 4/5.
+- On-device stage: retain U-Net (VGG16 encoder) for now; MobileNetV2 was evaluated but not adopted because Dice=0.8904 is below the 0.90 decision threshold.
 - Skip GAN-assisted and PVT variants — marginal accuracy gain does not justify training cost or edge infeasibility.
+
+The earlier VGG16 Dice figure of 0.9043 was a narrative/terminal-only reference and was never saved to disk; 0.9223 from `reports/eval_unet.json` is the evidenced value going forward.
 
 **Encoder decision note (Module 3 → Module 4):** MobileNetV2 was chosen over ResNet34 as the on-device segmentation encoder. Reason: MobileNetV2 has ~3.5M params vs ResNet34's ~21M, is explicitly designed for edge/mobile deployment, and is TensorRT INT8 compatible. ResNet34 offers no edge-feasibility advantage over MobileNetV2 and was not benchmarked in any Jetson Nano deployment paper found in Module 2. This decision is reflected in `src/segmentation/model.py` which implements `UNetVGG16` and `UNetMobileNetV2` — ResNet34 is not implemented.
 
@@ -89,8 +91,8 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 
 ### Segmentation Model — FINAL: `models/unet_vgg16.pth`
 - Reproduced metrics (ISIC 2018 val, 389 samples): **Dice=0.9223**
-- **MobileNetV2 encoder status (2026-09-21):** Architecture implemented in `src/segmentation/model.py` and verified locally — correct output shape (1,1,256,256), loss computes, gradients flow. Full 30-epoch training on ISIC 2018 Task 1 (same split: val_fraction=0.15, seed=42, image_size=256) requires Kaggle GPU; training script is at `scripts/train_eval_unet_mobilenetv2.py`. Dice result not yet available — pending GPU run.
-- **Deployment decision:** VGG16 encoder remains the selected segmentation model until MobileNetV2 Dice is measured. If MobileNetV2 Dice ≥ 0.90 (within ~2.5% of VGG16's 0.9223), the encoder swap is justified for edge deployment given MobileNetV2's ~40× parameter reduction (~3.5M vs ~138M). If Dice falls below 0.90, VGG16 stays selected with MobileNetV2 noted as viable-but-not-adopted pending further tuning.
+- **MobileNetV2 encoder status (2026-09-25):** Architecture implemented in `src/segmentation/model.py` and verified locally. Evaluation using the same split (`val_fraction=0.15`, `seed=42`, `image_size=256`) produced Dice=0.8904 and Jaccard=0.8206; results are saved in `reports/eval_unet_mobilenetv2.json`.
+- **Deployment decision:** VGG16 remains selected because MobileNetV2 Dice=0.8904 is below 0.90. MobileNetV2 is evaluated-but-not-adopted, despite its ~40× parameter reduction (~3.5M vs ~138M).
 
 ### Research Benchmark Reference (not deployed)
 - Swin-Small original checkpoint (`models/swin_small_ham10000.pth`) retained as a research-only benchmark. Not deployable due to nv recall collapse (0.2776). Both retrain attempts failed — closed.
@@ -100,12 +102,12 @@ Numbers on HAM10000 and/or ISIC 2019 unless noted. "Balanced" = explicitly rebal
 
 ## 5. Module 4 Reproduced Results Summary
 
-_All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19T12:36:01, device: cuda, val_split: HAMValDataset val_fraction=0.15 seed=42, 1,502 samples). Swin-Small v2 numbers from `reports/eval_swin_v2.json` (timestamp: 2026-09-20T18:20:01). Segmentation Dice sourced from Kaggle training terminal output — no saved metrics file exists for it yet._
+_All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19T12:36:01, device: cuda, val_split: HAMValDataset val_fraction=0.15 seed=42, 1,502 samples). Swin-Small v2 numbers from `reports/eval_swin_v2.json` (timestamp: 2026-09-20T18:20:01). VGG16 segmentation metrics sourced from `reports/eval_unet.json`; MobileNetV2 segmentation metrics sourced from `reports/eval_unet_mobilenetv2.json`._
 
 | Model | Dataset | Accuracy | Macro F1 | Mean Malignant Recall | nv Recall | Dice | Status |
 |---|---|---|---|---|---|---|---|
 | U-Net (VGG16) | ISIC 2018 Task 1 | — | — | — | — | **0.9223** | ✓ Deployable — selected |
-| U-Net (MobileNetV2) | ISIC 2018 Task 1 | — | — | — | — | **pending Kaggle GPU run** | Architecture verified locally; training script ready |
+| U-Net (MobileNetV2) | ISIC 2018 Task 1 | — | — | — | — | **0.8904** | Evaluated but not adopted; Jaccard=0.8206 |
 | EfficientNet-B0 | HAM10000 (7-class) | **0.7696** | **0.7384** | **0.8027** | 0.7418 | — | ✓ Deployable |
 | Swin-Small (original) | HAM10000 (7-class) | 0.4747 | 0.5790 | 0.8857 | 0.2776 | — | ✗ nv collapse |
 | Swin-Small v2 (retrain lr=1e-5, 23 epochs) | HAM10000 (7-class) | 0.4015 | 0.4496 | 0.8069 | 0.2378 | — | ✗ Worse — retrain failed |
@@ -120,5 +122,5 @@ _All numbers sourced from `reports/eval_ce_baseline.json` (timestamp: 2026-09-19
 
 **Module 4 status: CLOSED (2026-09-21)**
 1. ~~Retrain Swin-Small~~ — closed, both attempts failed, original checkpoint retained as research benchmark
-2. ~~Save U-Net segmentation metrics to JSON~~ — closed, `reports/eval_unet.json` (2026-09-20): Dice=0.9223 on ISIC 2018 val (389 samples, val_fraction=0.15, seed=42). Supersedes terminal-only number of 0.9043
+2. ~~Save U-Net segmentation metrics to JSON~~ — closed, `reports/eval_unet.json` (2026-09-20): Dice=0.9223 on ISIC 2018 val (389 samples, val_fraction=0.15, seed=42). Supersedes terminal-only number of 0.9043. MobileNetV2 evaluation is saved in `reports/eval_unet_mobilenetv2.json`: Dice=0.8904, Jaccard=0.8206.
 3. ~~ISIC 2024 generalization test~~ — deferred, out of scope for final report. Not blocking.

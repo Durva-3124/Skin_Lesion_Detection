@@ -65,8 +65,8 @@ this project's data. Ensemble methods (Swin+EfficientNetB4, MaxViT+ConvNeXt+Effi
 achieve 96–98.5% but are not edge-feasible.
 
 **On segmentation:** U-Net with VGG16 encoder is the verified baseline (Manzoor et al.,
-DIGITAL HEALTH 2025, Dice 94.24% on ISIC 2018). MobileNetV2 encoder is the recommended
-on-device swap (~3.5M vs ~138M params) but has not yet been trained on this project's data.
+DIGITAL HEALTH 2025, Dice 94.24% on ISIC 2018). MobileNetV2 encoder was evaluated on this
+project's data but did not meet the deployment threshold (~3.5M vs ~138M params).
 
 **On uncertainty and explainability:** MC Dropout (Gal & Ghahramani, 2016) is the
 established approach for uncertainty estimation in deployed medical AI. Grad-CAM provides
@@ -104,14 +104,14 @@ This is accepted as a project record limitation.
 | Model | Dice | Jaccard | Params | Edge Feasible | Status |
 |---|---|---|---|---|---|
 | **U-Net (VGG16 encoder)** | **0.9223** | — | ~138M | Medium | **SELECTED** |
-| U-Net (MobileNetV2 encoder) | pending | pending | ~3.5M | High | Architecture verified; training pending Kaggle GPU |
+| U-Net (MobileNetV2 encoder) | **0.8904** | **0.8206** | ~3.5M | High | Evaluated but not adopted; below Dice threshold |
 
-_Source: `reports/eval_unet.json` (2026-09-20)._
+_Source: `reports/eval_unet.json` and `reports/eval_unet_mobilenetv2.json` (2026-09-25)._
 
 **Deployment decision for segmentation:** VGG16 encoder is selected until MobileNetV2
-Dice is measured. If MobileNetV2 achieves Dice ≥ 0.90 (within ~2.5% of VGG16's 0.9223),
-the encoder swap is justified for edge deployment given the ~40× parameter reduction.
-Training script is at `scripts/train_eval_unet_mobilenetv2.py` — ready to run on Kaggle.
+Dice is measured. MobileNetV2 measured Dice=0.8904 and Jaccard=0.8206, below the Dice ≥
+0.90 decision threshold, so the encoder swap is not adopted. VGG16 remains selected;
+MobileNetV2 is evaluated-but-not-adopted, not future work.
 
 ---
 
@@ -279,9 +279,9 @@ _Full analysis: `research/animal_dataset_feasibility.md`._
    augmentation settings are unknown. The model's evaluation metrics are verified; its
    training provenance is not.
 
-3. **MobileNetV2 segmentation Dice unmeasured.** Architecture is verified and training
-   script is ready, but the full 30-epoch run requires Kaggle GPU. The deployment decision
-   (VGG16 vs MobileNetV2 for edge) cannot be finalized until this number exists.
+3. **MobileNetV2 segmentation was evaluated but did not meet the deployment threshold.**
+   Its measured Dice is 0.8904 and Jaccard is 0.8206 on the same 389-sample validation
+   split used for VGG16, so VGG16 remains selected for segmentation.
 
 4. **No clinical validation performed.** The pipeline has not been tested on images from
    the actual TejaLens camera hardware, on patients in the target deployment setting, or
@@ -300,9 +300,8 @@ _Full analysis: `research/animal_dataset_feasibility.md`._
 
 1. **Get Jetson Nano hardware.** Run `edge/benchmark_jetson.py`. Update
    `edge/benchmark_results.md` and Section 6 of this report with real numbers.
-2. **Run MobileNetV2 segmentation training on Kaggle.** Execute
-   `scripts/train_eval_unet_mobilenetv2.py`. If Dice ≥ 0.90, switch the pipeline's
-   segmentation stage to MobileNetV2 for edge deployment.
+2. **Keep VGG16 as the selected segmentation encoder.** MobileNetV2 was evaluated in
+   `reports/eval_unet_mobilenetv2.json` and is evaluated-but-not-adopted because Dice=0.8904.
 3. **Run ISIC 2024 generalization evaluation.** Execute `scripts/eval_isic2024.py`.
    This is the most important accuracy number for the deployment context.
 4. **Transfer learning pilot for veterinary use case.** Fine-tune EfficientNet-B0 on the
