@@ -13,7 +13,15 @@ tqdm>=4.65.0
 Pillow>=10.0.0
 numpy>=1.24.0
 
-# Module 5 (install when needed — Jetson Nano only)
+# Module 5
+onnx>=1.14.0
+onnxruntime>=1.16.0
+
+# Testing and utilities
+pytest>=7.4.0
+pyyaml>=6.0
+
+# Module 5 (install when needed — Jetson Nano only, JetPack 4.6.x)
 # tensorrt
 # pycuda
 
