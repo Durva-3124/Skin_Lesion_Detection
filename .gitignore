@@ -1,6 +1,18 @@
 # Dataset images — never commit raw image data
 data/
 
+# Model weights (large binaries — store separately)
+models/
+*.pth
+*.pt
+*.h5
+*.onnx
+*.trt
+*.engine
+
+# Compressed source archives — use git instead
+src_v2.zip
+
 # Python
 __pycache__/
 *.py[cod]
@@ -16,10 +28,6 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Model weights (large binaries — store separately)
-*.pth
-*.pt
-*.h5
-*.onnx
-*.trt
-*.engine
+# Assistants
+.amazonq
+.freebuff
